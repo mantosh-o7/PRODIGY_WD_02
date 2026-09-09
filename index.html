@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChronoPulse | Precision Stopwatch</title>
+  <meta name="description" content="A modern, high-precision stopwatch web application featuring lap tracking, animated circular progress, split timing analysis, and keyboard shortcuts." />
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  
+  <!-- FontAwesome Icons for crisp UI icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Ambient background glow elements -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <main class="app-container" id="app">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-stopwatch"></i>
+        </div>
+        <div>
+          <h1 class="brand-title">CHRONO<span>PULSE</span></h1>
+          <p class="brand-subtitle">High-Precision Microsecond Stopwatch</p>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <button id="soundToggleBtn" class="icon-btn" aria-label="Toggle Sound" title="Toggle audio feedback">
+          <i class="fa-solid fa-volume-high" id="soundIcon"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Stopwatch Display Card -->
+    <section class="timer-section" aria-label="Stopwatch Counter">
+      <div class="progress-ring-container">
+        <!-- SVG Progress Ring for 60-second revolution -->
+        <svg class="progress-ring" viewBox="0 0 340 340">
+          <defs>
+            <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#00f2fe" />
+              <stop offset="50%" stop-color="#4facfe" />
+              <stop offset="100%" stop-color="#7f00ff" />
+            </linearGradient>
+            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="6" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          <!-- Outer tick marks circle -->
+          <circle class="ring-bg" cx="170" cy="170" r="148" />
+          <!-- Animated glowing progress track -->
+          <circle 
+            id="progressCircle" 
+            class="ring-progress" 
+            cx="170" 
+            cy="170" 
+            r="148" 
+            stroke="url(#ringGradient)"
+          />
+        </svg>
+
+        <!-- Centered Digital Display -->
+        <div class="digital-display">
+          <div class="status-indicator" id="statusBadge">
+            <span class="status-dot"></span>
+            <span class="status-text">READY</span>
+          </div>
+
+          <div class="digits-group" aria-live="polite">
+            <div class="main-time" id="mainTimeDisplay">
+              <span id="hours">00</span><span class="colon">:</span><span id="minutes">00</span><span class="colon">:</span><span id="seconds">00</span>
+            </div>
+            <div class="milliseconds-tag">
+              <span class="ms-dot">.</span><span id="milliseconds">00</span>
+            </div>
+          </div>
+
+          <!-- Current lap delta mini display -->
+          <div class="current-lap-indicator" id="currentLapContainer">
+            <span class="lap-label">CURRENT LAP</span>
+            <span class="lap-time" id="currentLapDisplay">00:00.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Control Toolbar -->
+      <div class="controls-toolbar" role="toolbar" aria-label="Stopwatch controls">
+        <!-- Lap Button -->
+        <button id="lapBtn" class="btn btn-secondary" disabled title="Record lap split (Hotkey: L)">
+          <i class="fa-solid fa-flag"></i>
+          <span>Lap</span>
+        </button>
+
+        <!-- Primary Start/Pause Button -->
+        <button id="startPauseBtn" class="btn btn-primary" title="Start or Pause stopwatch (Hotkey: Space)">
+          <i class="fa-solid fa-play" id="startPauseIcon"></i>
+          <span id="startPauseText">Start</span>
+        </button>
+
+        <!-- Reset Button -->
+        <button id="resetBtn" class="btn btn-secondary" disabled title="Reset stopwatch (Hotkey: R)">
+          <i class="fa-solid fa-rotate-left"></i>
+          <span>Reset</span>
+        </button>
+      </div>
+
+      <!-- Shortcut helper tags -->
+      <div class="shortcuts-legend">
+        <span class="key-badge"><kbd>Space</kbd> Start / Pause</span>
+        <span class="key-badge"><kbd>L</kbd> Lap</span>
+        <span class="key-badge"><kbd>R</kbd> Reset</span>
+      </div>
+    </section>
+
+    <!-- Lap History and Analytics Section -->
+    <section class="laps-section" id="lapsSection" aria-label="Recorded Laps">
+      <div class="laps-header">
+        <div class="laps-title-area">
+          <h2 class="laps-title">
+            <i class="fa-solid fa-list-check"></i> Lap Records
+          </h2>
+          <span class="laps-count-badge" id="lapsCountBadge">0 Laps</span>
+        </div>
+
+        <div class="laps-actions" id="lapsActions" style="display: none;">
+          <button id="copyLapsBtn" class="action-btn" title="Copy laps to clipboard">
+            <i class="fa-regular fa-copy"></i>
+            <span>Copy</span>
+          </button>
+          <button id="exportCsvBtn" class="action-btn" title="Export laps to CSV file">
+            <i class="fa-solid fa-file-csv"></i>
+            <span>Export CSV</span>
+          </button>
+          <button id="clearLapsBtn" class="action-btn action-danger" title="Clear lap history">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Lap Stats Bar (Fastest, Slowest, Average) -->
+      <div class="lap-stats-grid" id="lapStatsGrid" style="display: none;">
+        <div class="stat-card stat-fastest">
+          <span class="stat-label"><i class="fa-solid fa-bolt"></i> Fastest Lap</span>
+          <span class="stat-val" id="statFastest">--:--.--</span>
+        </div>
+        <div class="stat-card stat-average">
+          <span class="stat-label"><i class="fa-solid fa-chart-simple"></i> Average Lap</span>
+          <span class="stat-val" id="statAverage">--:--.--</span>
+        </div>
+        <div class="stat-card stat-slowest">
+          <span class="stat-label"><i class="fa-solid fa-hourglass-end"></i> Slowest Lap</span>
+          <span class="stat-val" id="statSlowest">--:--.--</span>
+        </div>
+      </div>
+
+      <!-- Lap List Container -->
+      <div class="laps-table-wrapper">
+        <div class="empty-laps-state" id="emptyLapsState">
+          <div class="empty-icon">
+            <i class="fa-solid fa-stopwatch-20"></i>
+          </div>
+          <p class="empty-title">No Laps Recorded Yet</p>
+          <p class="empty-desc">Hit the "Lap" button or press <kbd>L</kbd> while the timer runs to record splits.</p>
+        </div>
+
+        <table class="laps-table" id="lapsTable" style="display: none;">
+          <thead>
+            <tr>
+              <th scope="col" class="th-lap">Lap</th>
+              <th scope="col" class="th-split">Lap Time</th>
+              <th scope="col" class="th-total">Total Time</th>
+              <th scope="col" class="th-badge">Remark</th>
+            </tr>
+          </thead>
+          <tbody id="lapsTableBody">
+            <!-- Dynamic Lap Rows inserted by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast" role="status" aria-live="polite">
+      <i class="fa-solid fa-circle-check"></i>
+      <span id="toastMessage">Copied to clipboard!</span>
+    </div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
